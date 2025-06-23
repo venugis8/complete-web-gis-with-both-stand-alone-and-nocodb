@@ -6,9 +6,595 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>NocoBase Super Admin Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@tanstack/react-query@5.8.4/build/umd/index.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Tailwind CSS variables */
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 222.2 84% 4.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 222.2 84% 4.9%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222.2 84% 4.9%;
+        --primary: 221.2 83.2% 53.3%;
+        --primary-foreground: 210 40% 98%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222.2 84% 4.9%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215.4 16.3% 46.9%;
+        --accent: 210 40% 96%;
+        --accent-foreground: 222.2 84% 4.9%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 210 40% 98%;
+        --border: 214.3 31.8% 91.4%;
+        --input: 214.3 31.8% 91.4%;
+        --ring: 221.2 83.2% 53.3%;
+        --radius: 0.5rem;
+      }
+
+      .custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e1 #f1f5f9;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 3px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 3px;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+      }
+
+      /* Loading animation */
+      .animate-spin {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      .animate-pulse {
+        animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: .5; }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body class="bg-gray-50">
+    <div id="root">
+      <!-- Loading state -->
+      <div class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading Super Admin Dashboard...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+
+    <script type="module">
+      // Simple toast implementation
+      window.showToast = function({ title, description, variant = 'default' }) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `
+          mb-2 p-4 rounded-lg shadow-lg max-w-sm transition-all duration-300
+          ${variant === 'destructive' ? 'bg-red-500 text-white' : 'bg-white border border-gray-200'}
+        `;
+        
+        toast.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              ${title ? `<div class="font-medium">${title}</div>` : ''}
+              ${description ? `<div class="text-sm ${variant === 'destructive' ? 'text-red-100' : 'text-gray-600'}">${description}</div>` : ''}
+            </div>
+            <button onclick="this.parentElement.parentElement.remove()" class="ml-2 text-gray-400 hover:text-gray-600">×</button>
+          </div>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+          if (toast.parentElement) {
+            toast.remove();
+          }
+        }, 5000);
+      };
+
+      // Simple Super Admin Dashboard implementation
+      function SuperAdminDashboard() {
+        const [showNocoDBManager, setShowNocoDBManager] = React.useState(false);
+        const [clients, setClients] = React.useState([
+          {
+            clientId: 'acme-corp',
+            clientName: 'ACME Corporation',
+            subdomain: 'acme',
+            backendType: 'nocodb',
+            status: 'active',
+            createdAt: '2024-01-15T10:00:00Z',
+            lastAccessed: '2024-01-20T15:30:00Z',
+            userCount: 25,
+            dataTableCount: 8
+          },
+          {
+            clientId: 'tech-startup',
+            clientName: 'Tech Startup Inc',
+            subdomain: 'techstartup',
+            backendType: 'teable',
+            status: 'active',
+            createdAt: '2024-01-18T14:00:00Z',
+            lastAccessed: '2024-01-20T09:15:00Z',
+            userCount: 12,
+            dataTableCount: 5
+          }
+        ]);
+
+        const dashboardStats = {
+          totalClients: clients.length,
+          activeClients: clients.filter(c => c.status === 'active').length,
+          totalUsers: clients.reduce((sum, client) => sum + client.userCount, 0),
+          totalTables: clients.reduce((sum, client) => sum + client.dataTableCount, 0),
+          nocodbClients: clients.filter(c => c.backendType === 'nocodb').length,
+          teableClients: clients.filter(c => c.backendType === 'teable').length,
+          standaloneClients: clients.filter(c => c.backendType === 'standalone').length
+        };
+
+        const getStatusBadge = (status) => {
+          const baseClasses = "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold";
+          switch (status) {
+            case 'active':
+              return `${baseClasses} bg-green-100 text-green-800 border-green-200`;
+            case 'inactive':
+              return `${baseClasses} bg-gray-100 text-gray-800 border-gray-200`;
+            case 'maintenance':
+              return `${baseClasses} bg-yellow-100 text-yellow-800 border-yellow-200`;
+            default:
+              return `${baseClasses} border-gray-200`;
+          }
+        };
+
+        const getBackendIcon = (backendType) => {
+          switch (backendType) {
+            case 'nocodb':
+              return 'fas fa-database text-purple-500';
+            case 'teable':
+              return 'fas fa-cloud text-blue-500';
+            case 'standalone':
+              return 'fas fa-server text-green-500';
+            default:
+              return 'fas fa-hdd text-gray-500';
+          }
+        };
+
+        return React.createElement('div', { className: 'min-h-screen bg-gray-50' }, [
+          // Header
+          React.createElement('header', { 
+            key: 'header',
+            className: 'bg-white border-b border-gray-200 px-6 py-4' 
+          }, [
+            React.createElement('div', { 
+              key: 'header-content',
+              className: 'flex items-center justify-between' 
+            }, [
+              React.createElement('div', { key: 'header-left' }, [
+                React.createElement('h1', { 
+                  key: 'title',
+                  className: 'text-2xl font-bold text-gray-900' 
+                }, 'Super Admin Dashboard'),
+                React.createElement('p', { 
+                  key: 'subtitle',
+                  className: 'text-gray-600' 
+                }, 'Manage all client deployments and system configurations')
+              ]),
+              React.createElement('div', { 
+                key: 'header-right',
+                className: 'flex items-center space-x-3' 
+              }, [
+                React.createElement('button', {
+                  key: 'nocodb-btn',
+                  className: 'inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md text-sm font-medium',
+                  onClick: () => setShowNocoDBManager(true)
+                }, [
+                  React.createElement('i', { 
+                    key: 'icon',
+                    className: 'fas fa-database mr-2' 
+                  }),
+                  'Manage NocoDB Clients'
+                ]),
+                React.createElement('button', {
+                  key: 'teable-btn',
+                  className: 'inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-md text-sm font-medium'
+                }, [
+                  React.createElement('i', { 
+                    key: 'icon',
+                    className: 'fas fa-cloud mr-2' 
+                  }),
+                  'Manage Teable Clients'
+                ]),
+                React.createElement('button', {
+                  key: 'standalone-btn',
+                  className: 'inline-flex items-center px-4 py-2 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded-md text-sm font-medium'
+                }, [
+                  React.createElement('i', { 
+                    key: 'icon',
+                    className: 'fas fa-server mr-2' 
+                  }),
+                  'Manage Standalone Clients'
+                ])
+              ])
+            ])
+          ]),
+
+          // Main Content
+          React.createElement('div', { 
+            key: 'main',
+            className: 'p-6 space-y-6' 
+          }, [
+            // Statistics Cards
+            React.createElement('div', { 
+              key: 'stats',
+              className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6' 
+            }, [
+              // Total Clients Card
+              React.createElement('div', { 
+                key: 'total-clients',
+                className: 'bg-white rounded-lg border shadow-sm p-6' 
+              }, [
+                React.createElement('div', { 
+                  key: 'content',
+                  className: 'flex items-center justify-between' 
+                }, [
+                  React.createElement('div', { key: 'text' }, [
+                    React.createElement('p', { 
+                      key: 'label',
+                      className: 'text-sm font-medium text-gray-600' 
+                    }, 'Total Clients'),
+                    React.createElement('p', { 
+                      key: 'value',
+                      className: 'text-3xl font-bold text-gray-900' 
+                    }, dashboardStats.totalClients)
+                  ]),
+                  React.createElement('div', { 
+                    key: 'icon',
+                    className: 'p-3 bg-blue-100 rounded-full' 
+                  }, [
+                    React.createElement('i', { 
+                      key: 'icon-el',
+                      className: 'fas fa-database text-blue-600 text-xl' 
+                    })
+                  ])
+                ]),
+                React.createElement('div', { 
+                  key: 'footer',
+                  className: 'mt-4 flex items-center text-sm' 
+                }, [
+                  React.createElement('i', { 
+                    key: 'trend-icon',
+                    className: 'fas fa-trending-up text-green-500 mr-1' 
+                  }),
+                  React.createElement('span', { 
+                    key: 'trend-text',
+                    className: 'text-green-600' 
+                  }, `${dashboardStats.activeClients} active`)
+                ])
+              ]),
+
+              // Total Users Card
+              React.createElement('div', { 
+                key: 'total-users',
+                className: 'bg-white rounded-lg border shadow-sm p-6' 
+              }, [
+                React.createElement('div', { 
+                  key: 'content',
+                  className: 'flex items-center justify-between' 
+                }, [
+                  React.createElement('div', { key: 'text' }, [
+                    React.createElement('p', { 
+                      key: 'label',
+                      className: 'text-sm font-medium text-gray-600' 
+                    }, 'Total Users'),
+                    React.createElement('p', { 
+                      key: 'value',
+                      className: 'text-3xl font-bold text-gray-900' 
+                    }, dashboardStats.totalUsers)
+                  ]),
+                  React.createElement('div', { 
+                    key: 'icon',
+                    className: 'p-3 bg-green-100 rounded-full' 
+                  }, [
+                    React.createElement('i', { 
+                      key: 'icon-el',
+                      className: 'fas fa-users text-green-600 text-xl' 
+                    })
+                  ])
+                ]),
+                React.createElement('div', { 
+                  key: 'footer',
+                  className: 'mt-4 text-sm text-gray-600' 
+                }, 'Across all client deployments')
+              ]),
+
+              // Data Tables Card
+              React.createElement('div', { 
+                key: 'data-tables',
+                className: 'bg-white rounded-lg border shadow-sm p-6' 
+              }, [
+                React.createElement('div', { 
+                  key: 'content',
+                  className: 'flex items-center justify-between' 
+                }, [
+                  React.createElement('div', { key: 'text' }, [
+                    React.createElement('p', { 
+                      key: 'label',
+                      className: 'text-sm font-medium text-gray-600' 
+                    }, 'Data Tables'),
+                    React.createElement('p', { 
+                      key: 'value',
+                      className: 'text-3xl font-bold text-gray-900' 
+                    }, dashboardStats.totalTables)
+                  ]),
+                  React.createElement('div', { 
+                    key: 'icon',
+                    className: 'p-3 bg-purple-100 rounded-full' 
+                  }, [
+                    React.createElement('i', { 
+                      key: 'icon-el',
+                      className: 'fas fa-chart-bar text-purple-600 text-xl' 
+                    })
+                  ])
+                ]),
+                React.createElement('div', { 
+                  key: 'footer',
+                  className: 'mt-4 text-sm text-gray-600' 
+                }, 'Total data tables managed')
+              ]),
+
+              // Backend Types Card
+              React.createElement('div', { 
+                key: 'backend-types',
+                className: 'bg-white rounded-lg border shadow-sm p-6' 
+              }, [
+                React.createElement('div', { 
+                  key: 'content',
+                  className: 'flex items-center justify-between' 
+                }, [
+                  React.createElement('div', { key: 'text' }, [
+                    React.createElement('p', { 
+                      key: 'label',
+                      className: 'text-sm font-medium text-gray-600' 
+                    }, 'Backend Types'),
+                    React.createElement('div', { 
+                      key: 'badges',
+                      className: 'flex items-center space-x-2 mt-2' 
+                    }, [
+                      React.createElement('span', { 
+                        key: 'nocodb',
+                        className: 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-gray-200' 
+                      }, `NocoDB: ${dashboardStats.nocodbClients}`),
+                      React.createElement('span', { 
+                        key: 'teable',
+                        className: 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-gray-200' 
+                      }, `Teable: ${dashboardStats.teableClients}`)
+                    ])
+                  ]),
+                  React.createElement('div', { 
+                    key: 'icon',
+                    className: 'p-3 bg-yellow-100 rounded-full' 
+                  }, [
+                    React.createElement('i', { 
+                      key: 'icon-el',
+                      className: 'fas fa-cog text-yellow-600 text-xl' 
+                    })
+                  ])
+                ]),
+                React.createElement('div', { 
+                  key: 'footer',
+                  className: 'mt-4 text-sm text-gray-600' 
+                }, `Standalone: ${dashboardStats.standaloneClients}`)
+              ])
+            ]),
+
+            // Client List
+            React.createElement('div', { 
+              key: 'client-list',
+              className: 'bg-white rounded-lg border shadow-sm' 
+            }, [
+              React.createElement('div', { 
+                key: 'header',
+                className: 'p-6 border-b border-gray-200' 
+              }, [
+                React.createElement('div', { 
+                  key: 'header-content',
+                  className: 'flex items-center justify-between' 
+                }, [
+                  React.createElement('h3', { 
+                    key: 'title',
+                    className: 'text-lg font-semibold' 
+                  }, 'Client Deployments'),
+                  React.createElement('button', {
+                    key: 'deploy-btn',
+                    className: 'inline-flex items-center px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-medium',
+                    onClick: () => setShowNocoDBManager(true)
+                  }, [
+                    React.createElement('i', { 
+                      key: 'icon',
+                      className: 'fas fa-plus mr-2' 
+                    }),
+                    'Deploy New Client'
+                  ])
+                ])
+              ]),
+              React.createElement('div', { 
+                key: 'content',
+                className: 'p-6' 
+              }, [
+                React.createElement('div', { 
+                  key: 'clients',
+                  className: 'space-y-4' 
+                }, clients.map((client, index) => 
+                  React.createElement('div', { 
+                    key: client.clientId,
+                    className: 'flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50' 
+                  }, [
+                    React.createElement('div', { 
+                      key: 'left',
+                      className: 'flex items-center space-x-4' 
+                    }, [
+                      React.createElement('div', { 
+                        key: 'icon',
+                        className: 'p-2 bg-gray-100 rounded-full' 
+                      }, [
+                        React.createElement('i', { 
+                          key: 'icon-el',
+                          className: getBackendIcon(client.backendType) 
+                        })
+                      ]),
+                      React.createElement('div', { key: 'info' }, [
+                        React.createElement('h4', { 
+                          key: 'name',
+                          className: 'font-medium text-gray-900' 
+                        }, client.clientName),
+                        React.createElement('p', { 
+                          key: 'subdomain',
+                          className: 'text-sm text-gray-600' 
+                        }, `${client.subdomain}.nocobase.com`)
+                      ])
+                    ]),
+                    React.createElement('div', { 
+                      key: 'right',
+                      className: 'flex items-center space-x-6' 
+                    }, [
+                      React.createElement('div', { 
+                        key: 'stats',
+                        className: 'text-sm text-gray-600' 
+                      }, [
+                        React.createElement('div', { 
+                          key: 'counts',
+                          className: 'flex items-center space-x-4' 
+                        }, [
+                          React.createElement('span', { key: 'users' }, `${client.userCount} users`),
+                          React.createElement('span', { key: 'tables' }, `${client.dataTableCount} tables`)
+                        ]),
+                        React.createElement('div', { 
+                          key: 'created',
+                          className: 'text-xs text-gray-500 mt-1' 
+                        }, `Created: ${new Date(client.createdAt).toLocaleDateString()}`)
+                      ]),
+                      React.createElement('div', { 
+                        key: 'badges',
+                        className: 'flex items-center space-x-3' 
+                      }, [
+                        React.createElement('span', { 
+                          key: 'status',
+                          className: getStatusBadge(client.status) 
+                        }, client.status.charAt(0).toUpperCase() + client.status.slice(1)),
+                        React.createElement('span', { 
+                          key: 'backend',
+                          className: 'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold border-gray-200 capitalize' 
+                        }, client.backendType),
+                        React.createElement('button', {
+                          key: 'open-btn',
+                          className: 'inline-flex items-center px-3 py-1 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 rounded text-sm',
+                          onClick: () => window.open(`/clients/${client.backendType}/${client.clientId}/map`, '_blank')
+                        }, 'Open')
+                      ])
+                    ])
+                  ])
+                ))
+              ])
+            ])
+          ]),
+
+          // NocoDB Manager Modal (simplified)
+          showNocoDBManager && React.createElement('div', { 
+            key: 'modal',
+            className: 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50',
+            onClick: () => setShowNocoDBManager(false)
+          }, [
+            React.createElement('div', { 
+              key: 'modal-content',
+              className: 'bg-white rounded-lg p-6 max-w-2xl w-full mx-4',
+              onClick: (e) => e.stopPropagation()
+            }, [
+              React.createElement('div', { 
+                key: 'modal-header',
+                className: 'flex items-center justify-between mb-4' 
+              }, [
+                React.createElement('h2', { 
+                  key: 'title',
+                  className: 'text-xl font-semibold' 
+                }, 'NocoDB Client Manager'),
+                React.createElement('button', {
+                  key: 'close',
+                  className: 'text-gray-400 hover:text-gray-600',
+                  onClick: () => setShowNocoDBManager(false)
+                }, '×')
+              ]),
+              React.createElement('div', { 
+                key: 'modal-body',
+                className: 'text-center py-8' 
+              }, [
+                React.createElement('i', { 
+                  key: 'icon',
+                  className: 'fas fa-database text-4xl text-purple-500 mb-4' 
+                }),
+                React.createElement('h3', { 
+                  key: 'title',
+                  className: 'text-lg font-medium text-gray-900 mb-2' 
+                }, 'NocoDB Client Management'),
+                React.createElement('p', { 
+                  key: 'description',
+                  className: 'text-gray-600 mb-4' 
+                }, 'Deploy and manage NocoDB-powered client instances with custom branding and features.'),
+                React.createElement('button', {
+                  key: 'deploy-btn',
+                  className: 'inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md',
+                  onClick: () => {
+                    window.showToast({
+                      title: 'Feature Coming Soon',
+                      description: 'NocoDB client deployment will be available soon.',
+                      variant: 'default'
+                    });
+                  }
+                }, [
+                  React.createElement('i', { 
+                    key: 'icon',
+                    className: 'fas fa-plus mr-2' 
+                  }),
+                  'Deploy New NocoDB Client'
+                ])
+              ])
+            ])
+          ])
+        ]);
+      }
+
+      // Render the dashboard
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(SuperAdminDashboard));
+    </script>
   </body>
 </html>
