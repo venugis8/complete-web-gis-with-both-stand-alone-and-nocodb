@@ -1,6 +1,6 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster.tsx';
+import { Toaster } from '@/components/ui/toaster';
 import SuperAdminDashboard from '@/components/super-admin-dashboard';
 
 const queryClient = new QueryClient({
