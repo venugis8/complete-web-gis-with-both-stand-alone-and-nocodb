@@ -1,6 +1,5 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from '@/components/ui/toaster.tsx';
 import SuperAdminDashboard from '@/components/super-admin-dashboard';
 
 const queryClient = new QueryClient({
@@ -17,7 +16,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <div className="min-h-screen bg-gray-50">
         <SuperAdminDashboard />
-        <Toaster />
+        {/* Simple toast container - temporary fallback */}
+        <div id="toast-container" className="fixed top-4 right-4 z-50"></div>
       </div>
     </QueryClientProvider>
   );
