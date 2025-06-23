@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { ClientManager, type ClientDeploymentConfig, type ClientInfo } from '@/lib/client-manager';
-import { Plus, Settings, Users, Database, Activity, ExternalLink } from 'lucide-react';
+import { Plus, Settings, Users, Database, Activity, ExternalLink, CheckCircle } from 'lucide-react';
 
 interface NocoDBClientManagerProps {
   isOpen: boolean;
@@ -22,6 +22,12 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
   const [selectedClient, setSelectedClient] = useState<ClientInfo | null>(null);
   const [deployConfig, setDeployConfig] = useState<Partial<ClientDeploymentConfig>>({
     backendType: 'nocodb',
+    backendConfig: {
+      nocodbUrl: 'https://app.nocodb.com',
+      nocodbApiToken: '',
+      nocodbBaseId: '',
+      sitesTableId: ''
+    },
     customizations: {
       branding: {
         primaryColor: '#3B82F6',
@@ -85,6 +91,12 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
   const resetDeployForm = () => {
     setDeployConfig({
       backendType: 'nocodb',
+      backendConfig: {
+        nocodbUrl: 'https://app.nocodb.com',
+        nocodbApiToken: '',
+        nocodbBaseId: '',
+        sitesTableId: ''
+      },
       customizations: {
         branding: {
           primaryColor: '#3B82F6',
@@ -120,7 +132,7 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
     if (!deployConfig.backendConfig?.nocodbUrl || !deployConfig.backendConfig?.nocodbApiToken || !deployConfig.backendConfig?.nocodbBaseId) {
       toast({
         title: 'Missing NocoDB Configuration',
-        description: 'Please provide NocoDB URL, API token, and Base ID.',
+        description: 'Please provide NocoDB URL, API Key, and Base ID.',
         variant: 'destructive'
       });
       return;
@@ -178,87 +190,14 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
             </Button>
           </div>
 
-          {/* Clients Grid */}
-          {clientsLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <Skeleton className="h-6 w-full mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-4" />
-                    <div className="space-y-2">
-                      <Skeleton className="h-3 w-full" />
-                      <Skeleton className="h-3 w-2/3" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clients?.map((client) => (
-                <Card key={client.clientId} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        {getBackendIcon(client.backendType)}
-                        <CardTitle className="text-base">{client.clientName}</CardTitle>
-                      </div>
-                      {getStatusBadge(client.status)}
-                    </div>
-                    <p className="text-sm text-gray-600">{client.subdomain}.nocobase.com</p>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4 text-gray-400" />
-                          <span>{client.userCount} users</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Database className="h-4 w-4 text-gray-400" />
-                          <span>{client.dataTableCount} tables</span>
-                        </div>
-                      </div>
-                      
-                      <div className="text-xs text-gray-500">
-                        Created: {new Date(client.createdAt).toLocaleDateString()}
-                        {client.lastAccessed && (
-                          <div>Last accessed: {new Date(client.lastAccessed).toLocaleDateString()}</div>
-                        )}
-                      </div>
-
-                      <div className="flex space-x-2 pt-2">
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="flex-1"
-                          onClick={() => setSelectedClient(client)}
-                        >
-                          <Settings className="h-3 w-3 mr-1" />
-                          Manage
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="flex-1"
-                          onClick={() => window.open(`/clients/${client.backendType}/${client.clientId}/map`, '_blank')}
-                        >
-                          <ExternalLink className="h-3 w-3 mr-1" />
-                          Open
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
           {/* Deploy New Client Form */}
           {showDeployForm && (
             <Card className="border-purple-200">
               <CardHeader>
-                <CardTitle className="text-purple-700">Deploy New NocoDB Client</CardTitle>
+                <CardTitle className="text-purple-700 flex items-center space-x-2">
+                  <Database className="h-5 w-5" />
+                  <span>Deploy New NocoDB Client</span>
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Basic Information */}
@@ -302,12 +241,18 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
                   </div>
                 </div>
 
-                {/* NocoDB Configuration */}
-                <div className="border rounded-lg p-4 bg-purple-50">
-                  <h4 className="font-medium mb-4 text-purple-700">NocoDB Configuration</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* NocoDB Configuration - Matching the UI exactly */}
+                <div className="border rounded-lg p-6 bg-purple-50">
+                  <div className="flex items-center space-x-2 mb-6">
+                    <Database className="h-5 w-5 text-purple-600" />
+                    <h4 className="font-medium text-purple-700">NocoDB Configuration</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="nocodbUrl">NocoDB URL *</Label>
+                      <Label htmlFor="nocodbUrl" className="text-sm font-medium">
+                        NocoDB URL <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="nocodbUrl"
                         value={deployConfig.backendConfig?.nocodbUrl || ''}
@@ -316,10 +261,14 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
                           backendConfig: { ...prev.backendConfig, nocodbUrl: e.target.value }
                         }))}
                         placeholder="https://app.nocodb.com"
+                        className="mt-1"
                       />
                     </div>
+                    
                     <div>
-                      <Label htmlFor="nocodbApiToken">API Token *</Label>
+                      <Label htmlFor="nocodbApiToken" className="text-sm font-medium">
+                        API Key <span className="text-red-500">*</span>
+                      </Label>
                       <Input
                         id="nocodbApiToken"
                         type="password"
@@ -328,11 +277,13 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
                           ...prev,
                           backendConfig: { ...prev.backendConfig, nocodbApiToken: e.target.value }
                         }))}
-                        placeholder="Your NocoDB API token"
+                        placeholder="Your NocoDB API key"
+                        className="mt-1"
                       />
                     </div>
+                    
                     <div>
-                      <Label htmlFor="nocodbBaseId">Base ID *</Label>
+                      <Label htmlFor="nocodbBaseId" className="text-sm font-medium">Base ID</Label>
                       <Input
                         id="nocodbBaseId"
                         value={deployConfig.backendConfig?.nocodbBaseId || ''}
@@ -340,8 +291,37 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
                           ...prev,
                           backendConfig: { ...prev.backendConfig, nocodbBaseId: e.target.value }
                         }))}
-                        placeholder="NocoDB base identifier"
+                        placeholder="NocoDB base ID"
+                        className="mt-1"
                       />
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="sitesTableId" className="text-sm font-medium">Sites Table ID</Label>
+                      <Input
+                        id="sitesTableId"
+                        value={deployConfig.backendConfig?.sitesTableId || ''}
+                        onChange={(e) => setDeployConfig(prev => ({
+                          ...prev,
+                          backendConfig: { ...prev.backendConfig, sitesTableId: e.target.value }
+                        }))}
+                        placeholder="Sites table ID"
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 rounded-md">
+                    <div className="flex items-start space-x-2">
+                      <CheckCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                      <div className="text-sm text-blue-700">
+                        <p className="font-medium">Configuration Help:</p>
+                        <ul className="mt-1 space-y-1 text-xs">
+                          <li>• Get your API key from NocoDB Settings → API Tokens</li>
+                          <li>• Base ID can be found in your NocoDB project URL</li>
+                          <li>• Sites Table ID is optional - leave blank to auto-detect</li>
+                        </ul>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -432,11 +412,97 @@ export default function NocoDBClientManager({ isOpen, onClose }: NocoDBClientMan
                     disabled={deployClientMutation.isPending}
                     className="bg-purple-600 hover:bg-purple-700"
                   >
-                    {deployClientMutation.isPending ? 'Deploying...' : 'Deploy Client'}
+                    {deployClientMutation.isPending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Deploying...
+                      </>
+                    ) : (
+                      <>
+                        <Database className="h-4 w-4 mr-2" />
+                        Deploy Client
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Clients Grid */}
+          {clientsLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <Skeleton className="h-6 w-full mb-2" />
+                    <Skeleton className="h-4 w-3/4 mb-4" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-2/3" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clients?.map((client) => (
+                <Card key={client.clientId} className="hover:shadow-md transition-shadow cursor-pointer">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {getBackendIcon(client.backendType)}
+                        <CardTitle className="text-base">{client.clientName}</CardTitle>
+                      </div>
+                      {getStatusBadge(client.status)}
+                    </div>
+                    <p className="text-sm text-gray-600">{client.subdomain}.nocobase.com</p>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-center space-x-2">
+                          <Users className="h-4 w-4 text-gray-400" />
+                          <span>{client.userCount} users</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Database className="h-4 w-4 text-gray-400" />
+                          <span>{client.dataTableCount} tables</span>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-500">
+                        Created: {new Date(client.createdAt).toLocaleDateString()}
+                        {client.lastAccessed && (
+                          <div>Last accessed: {new Date(client.lastAccessed).toLocaleDateString()}</div>
+                        )}
+                      </div>
+
+                      <div className="flex space-x-2 pt-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => setSelectedClient(client)}
+                        >
+                          <Settings className="h-3 w-3 mr-1" />
+                          Manage
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => window.open(`/clients/${client.backendType}/${client.clientId}/map`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3 mr-1" />
+                          Open
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           )}
 
           {/* Client Details Modal */}
